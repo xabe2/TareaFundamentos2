@@ -1,0 +1,93 @@
+/* ============================================================
+   Gramática SableCC para archivos .lrc (Lyrics)
+   Tarea 2 - Fundamentos de Ciencias de la Computación
+   Semestre Otoño 2026
+   ============================================================ */
+
+Package lyrics;
+
+/* ----------------------------------------------------------
+   HELPERS - caracteres básicos
+   ---------------------------------------------------------- */
+Helpers
+    digit       = ['0'..'9'];
+    letter      = [['a'..'z'] + ['A'..'Z']];
+    any_char    = [0..127];
+    tab         = 9;
+    cr          = 13;
+    lf          = 10;
+    blank       = ' ';
+    /* Cualquier carácter que no sea ] ni salto de línea */
+    text_char   = [[any_char - ']'] - [cr + lf]];
+    /* Cualquier carácter que no sea salto de línea */
+    line_char   = [any_char - [cr + lf]];
+
+/* ----------------------------------------------------------
+   TOKENS - unidades léxicas
+   ---------------------------------------------------------- */
+Tokens
+    /* Saltos de línea */
+    eol         = (cr lf) | cr | lf;
+
+    /* Espacios/tabs (ignorados) */
+    blank       = (' ' | tab)+;
+
+    /* Marcas de tiempo: [mm:ss.xx] */
+    time_tag    = '[' digit digit ':' digit digit '.' digit digit ']';
+
+    /* Etiqueta de artista: [ar:...] */
+    tag_ar      = '[ar:' text_char* ']';
+
+    /* Etiqueta de título: [ti:...] */
+    tag_ti      = '[ti:' text_char* ']';
+
+    /* Etiqueta de álbum: [al:...] */
+    tag_al      = '[al:' text_char* ']';
+
+    /* Etiqueta de longitud: [length:...] */
+    tag_length  = '[length:' text_char* ']';
+
+    /* Cualquier otra etiqueta de metadatos: [xx:...] */
+    tag_other   = '[' letter letter ':' text_char* ']';
+
+    /* Texto de la letra (resto de la línea) */
+    lyric_text  = line_char+;
+
+/* ----------------------------------------------------------
+   IGNORED TOKENS
+   ---------------------------------------------------------- */
+Ignored Tokens
+    blank;
+
+/* ----------------------------------------------------------
+   PRODUCTIONS - gramática
+   ---------------------------------------------------------- */
+Productions
+
+    /* Archivo completo: metadatos opcionales seguidos de líneas de letra */
+    archivo =
+        {con_meta}  metadata lineas      |
+        {sin_meta}  lineas               ;
+
+    /* Bloque de metadatos al inicio del archivo */
+    metadata =
+        {uno}   meta_tag eol             |
+        {varios} meta_tag eol metadata   ;
+
+    /* Una etiqueta de metadato */
+    meta_tag =
+        {ar}        tag_ar               |
+        {ti}        tag_ti               |
+        {al}        tag_al               |
+        {length}    tag_length           |
+        {other}     tag_other            ;
+
+    /* Cuerpo del archivo: una o más líneas */
+    lineas =
+        {una}   linea                    |
+        {varias} linea lineas            ;
+
+    /* Una línea: timestamp + texto (el texto puede ser vacío) */
+    linea =
+        {con_texto}  time_tag lyric_text eol   |
+        {vacia}      time_tag eol              ;
